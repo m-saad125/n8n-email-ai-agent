@@ -1,0 +1,705 @@
+{
+  "name": "Email AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "42b4bd6c-5383-401e-ad1e-8ccf0f96b8bd",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YfWzmT8Pa6geEJhv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"label\": \"1: respond\",\n  \"confidence\": 0.8,\n  \"reason\": \"This email has this category because...\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        -144
+      ],
+      "id": "a3680ab4-78e8-42a5-895f-59cc398fbdc0",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=From: {{ $json.snder_email }}\nName: {{ $json.sender_name }}\nSubject: {{ $json.email_subject }}\nEmail Content: \n\n{{ $json.email_body }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=System: You are an email triage assistant. Given one email, choose exactly one label from this fixed allowed list using the exact spelling and punctuation. No other label is permitted. Allowed labels:\n\"1: To respond\"\n\"2: FYI\"\n\"3: Comment\"\n\"4: Notification\"\n\"5: Meeting Update\"\n\"6: Awaiting reply\"\n\"7: Collab Request\"\n\"8: Marketing\"\n\"9: Cold Email\"\n\nIf you are not confident (confidence < 0.75) or the email is ambiguous, output only the fallback uncertain JSON. Do not output anything outside the schema.\n\nSchema:\n{\n  \"label\": string,          // one of the eight above exactly, or \"uncertain\"\n  \"confidence\": number,     // if label is one of the eight must be >= 0.75; if \"uncertain\" must be < 0.75 (or 0.0 for format violation)\n  \"reason\": string          // one-sentence justification or explanation of ambiguity/format violation\n}\n\nRules:\n • Only output one of the allowed labels when confident; exact match including number, colon, spacing, and capitalization. No synonyms, no extra labels like “Collab Request” unless it is exactly \"7: Collab Request\".  \n • If confidence < 0.75 or intent is unclear, output:\n   {\"label\":\"uncertain\",\"confidence\":<score less than 0.75>,\"reason\":\"<what is ambiguous or missing>\"}  \n • If any instruction or format would be violated, output:\n   {\"label\":\"uncertain\",\"confidence\":0.0,\"reason\":\"format violation or instruction conflict\"}  \n • Base label on intent/next step:\n    • \"1: To respond\": needs a direct reply  \n    • \"2: FYI\": informational, no action  \n    • \"3: Comment\": opinion/feedback not requiring reply  \n    • \"4: Notification\": automated/status update. \n    • \"5: Meeting Update\": invite/agenda/time change  \n    • \"6: Awaiting reply\": follow-up waiting on someone else  \n    • \"7: Collab Request\": request to collaborate. I have a youtube channel and this is the contact email for that channel. It's not for notification e.g. drive share request. Drive share request is notification.\n    • \"8: Marketing\": promotional content  \n    • \"9: Cold Email\": If it's a offer from somebody tries to sell me something. Since I have a youtube channel and people like to contact me to offer me services like thumbnail designs etc.\n\nFew-shot examples (must match output exactly):\nEmail: \"Can you review the attached draft and send me your edits by tomorrow?\"  \nOutput: {\"label\":\"1: To respond\",\"confidence\":0.92,\"reason\":\"Asks for review and direct reply with deadline\"}\n\nEmail: \"Monthly metrics report attached for your awareness, no action needed.\"  \nOutput: {\"label\":\"2: FYI\",\"confidence\":0.95,\"reason\":\"Information shared explicitly with no required action\"}\n\nEmail: \"I think we should tweak the headline; the current version feels weak.\"  \nOutput: {\"label\":\"3: Comment\",\"confidence\":0.88,\"reason\":\"Opinion without a required task\"}\n\nEmail: \"Server backup completed successfully at 3am.\"  \nOutput: {\"label\":\"4: Notification\",\"confidence\":0.90,\"reason\":\"Automated status update\"}\n\nEmail: \"Meeting on Thursday moved from 10 to 2pm.\"  \nOutput: {\"label\":\"5: Meeting Update\",\"confidence\":0.93,\"reason\":\"Change to scheduled meeting time\"}\n\nEmail: \"Just checking if you had a chance to look at my proposal.\"  \nOutput: {\"label\":\"6: Awaiting reply\",\"confidence\":0.80,\"reason\":\"Follow-up seeking a response\"}\n\nEmail: \"Want to team up on the new campaign and split tasks?\"  \nOutput: {\"label\":\"7: Collab Request\",\"confidence\":0.85,\"reason\":\"Proposal to collaborate on a project\"}\n\nEmail: \"Exclusive summer sale: 40% off all plans limited time!\"  \nOutput: {\"label\":\"8: Marketing\",\"confidence\":0.99,\"reason\":\"Promotional campaign content\"}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "9188e057-c68a-4d14-91b3-e720aad08722",
+      "name": "Email AI Agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c3fa17db-e5ba-4f5f-a40b-b67be0bc76e7",
+              "name": "snder_email",
+              "value": "={{ $json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "8157e5c1-af57-40fc-8730-c8b0744eb88a",
+              "name": "sender_name",
+              "value": "={{ $json.from.value[0].name }}",
+              "type": "string"
+            },
+            {
+              "id": "68d9bcf2-84c6-4767-a42a-65ee75199fb7",
+              "name": "email_subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "f4f75f08-4b84-441f-ae06-13593c0c878e",
+              "name": "email_body",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "a498fef7-eeeb-4805-8fd1-575c2365f686",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "fe007f0a-18fd-442b-8639-9911177b0157",
+      "name": "Mail"
+    },
+    {
+      "parameters": {
+        "content": "## Classifier",
+        "height": 624,
+        "width": 960,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        80,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "d7ceb535-8357-441e-b97a-7cc94fca620b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "resource": "label"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        240
+      ],
+      "id": "2820d7a4-a24f-4f41-a370-ecc6d3376d41",
+      "name": "Get many labels",
+      "webhookId": "d62ff2a9-f74a-4969-99c5-3d3cb0803e3a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YfWzmT8Pa6geEJhv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        432,
+        240
+      ],
+      "id": "ce9e8f61-13b4-4e20-8add-043f84c161d2",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a1b3282-fee1-4b84-a053-fb256c23692f",
+              "name": "label_id",
+              "value": "={{\n  $json.data.find(item =>\n    item.name.toLowerCase().trim() ===\n    $('Email AI Agent').item.json.output.label\n      .replace(/^\\d+:\\s*/, '')\n      .toLowerCase()\n      .trim()\n  )?.id\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        240
+      ],
+      "id": "9cd507ac-cbd8-4014-9e4e-e8a0e3e8277f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Mail').item.json.id }}",
+        "labelIds": "={{ $json.label_id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        240
+      ],
+      "id": "995f43e5-591f-4fbd-a1f1-ba9ec6b70297",
+      "name": "Add label to message",
+      "webhookId": "3b4e57db-852e-4b35-afbb-4fe90de30623",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YfWzmT8Pa6geEJhv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Mail Responder",
+        "height": 624,
+        "width": 1104,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1056,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "2acdd1d3-effd-40c4-835d-046409477558",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a983bf35-19be-4674-b716-13f7397ded38",
+              "leftValue": "={{ $('Email AI Agent').item.json.output.label }}",
+              "rightValue": "To respond",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1088,
+        240
+      ],
+      "id": "ce921d9f-7e4c-440d-99c7-2b321b239c0e",
+      "name": "Needs Response"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Subject: {{ $('Mail').item.json.email_subject }}\nSender: {{ $('Mail').item.json.sender_name }}\nEmail Body: \n{{ $('Mail').item.json.email_body }}\n",
+        "options": {
+          "systemMessage": "=You are a helpful assistant. Based on the email craft a response.\n\nFollow the following rules:\n\n1. You don't repeat anything.\n2. You assume what the user would could answer.\n\n\nHere are some examples:\n\n(coming soon) \n\nOutput: You only output the response email body only!"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1424,
+        0
+      ],
+      "id": "97be248f-e4c6-45f5-a2ac-fdcdda246877",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        -352
+      ],
+      "id": "0a1b06eb-21b1-4a9d-ac36-0b628001f76a",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "zJsqWUMsp7vCzSgd",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Mail').item.json.email_subject }}",
+        "message": "={{ $json.output }}",
+        "options": {
+          "sendTo": "={{ $('Mail').item.json.snder_email }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        0
+      ],
+      "id": "c583d10c-bb4e-4226-b30f-f5cac7963f43",
+      "name": "Create a draft",
+      "webhookId": "5ed28fa9-6d57-4640-9d35-b2504a84981e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YfWzmT8Pa6geEJhv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1984,
+        256
+      ],
+      "id": "65aef40a-8aea-4fd1-b725-fe2f3714e9ed",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "content": "## Chat Models",
+        "height": 512,
+        "width": 592,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        752,
+        448
+      ],
+      "id": "f546618e-1b42-4ac5-b508-fcba11427ac9",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        512
+      ],
+      "id": "8abd5448-aab6-4bd3-9855-ebbc8cea0e78",
+      "name": "Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "zJsqWUMsp7vCzSgd",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1072,
+        512
+      ],
+      "id": "45fc93cd-fd67-44f1-90d1-46705ec40149",
+      "name": "OpenAI Chat",
+      "credentials": {
+        "openAiApi": {
+          "id": "vGNF7KuXu7VKsa3i",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        928,
+        512
+      ],
+      "id": "b9ce650a-dedd-4ff9-8c00-6a0013411412",
+      "name": "DeepSeek",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "yxHNAswrhGEzuy5t",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        784,
+        512
+      ],
+      "id": "8b875d18-1da2-4f74-a74c-9334c5dfa1a3",
+      "name": "OpenRouter"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        656
+      ],
+      "id": "ea3c0610-72d5-46a7-8bcc-e4942a738aaf",
+      "name": "Azure OpenAI"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        656
+      ],
+      "id": "c0361046-85f6-4a14-b452-7266b3948900",
+      "name": "Ollama"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatXAiGrok",
+      "typeVersion": 1,
+      "position": [
+        928,
+        656
+      ],
+      "id": "34e25c2f-27ca-4773-bf15-679e74f2e7b0",
+      "name": "xAI Grok"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        784,
+        656
+      ],
+      "id": "d651d9c9-62e3-4402-bf02-2ea11722ed0f",
+      "name": "Anthropic",
+      "credentials": {
+        "anthropicApi": {
+          "id": "n7XCIh3aaFFTpjew",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        928,
+        816
+      ],
+      "id": "e485f3a5-066e-4ec9-8d24-8921d139dbe8",
+      "name": "Google Vertex"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatCohere",
+      "typeVersion": 1,
+      "position": [
+        784,
+        816
+      ],
+      "id": "512242b2-5209-43bc-83f0-0956b52c59c8",
+      "name": "Cohere"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        816
+      ],
+      "id": "9ebf9f0f-8709-41d0-b814-34176e8983db",
+      "name": "AWS Bedrock"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        816
+      ],
+      "id": "7f4ed9ba-0952-4bb4-bec1-201536ef7a66",
+      "name": "Mistral Cloud"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Email AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mail": {
+      "main": [
+        [
+          {
+            "node": "Email AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Get many labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many labels": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message": {
+      "main": [
+        [
+          {
+            "node": "Needs Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Response": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Email AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e8c2847b-6eee-4271-8942-41a266196f2b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca315c1116a954e4795e337bf0da40d6ec32d0d6c6bce8420cce4be06aed6c36"
+  },
+  "id": "CmatuwFttJ8gZvbd",
+  "tags": []
+}
