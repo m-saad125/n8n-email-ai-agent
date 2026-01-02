@@ -1,3 +1,7 @@
+![License](https://img.shields.io/badge/license-MIT-green)
+![Built with n8n](https://img.shields.io/badge/Built%20with-n8n-orange)
+![Gmail](https://img.shields.io/badge/Gmail-Automation-red)
+
 # n8n-email-ai-agent
 
 AI-powered Gmail email triage and response workflow built with **n8n**.  
