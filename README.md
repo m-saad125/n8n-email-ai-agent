@@ -70,7 +70,7 @@ If you prefer different labels, you can update the **system prompt** in the Emai
 
 ## Screenshots
 
-<img width="775" height="409" alt="image" src="https://github.com/user-attachments/assets/ec97ac6a-74b2-4de6-9dd8-df7d562f04f5" />
+![Workflow Overview](screenshots/workflow.png)
 
 
 ## License
