@@ -1,0 +1,257 @@
+{
+  "name": "Label Creater in Gmail",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "label",
+        "operation": "create",
+        "name": "={{ $json.LABELS }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2320,
+        0
+      ],
+      "id": "938f9937-f0c2-4a88-b416-77d2db4b7a01",
+      "name": "Create a label",
+      "webhookId": "532a2033-6bc6-450d-83a8-44f8ceb61f6e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YfWzmT8Pa6geEJhv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        0
+      ],
+      "id": "dc179b33-6384-4d45-86b9-cd0428cec4e6",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15Jp8CeN-MLBfi7KxHHM_d0w0TJbaf2rKNQw4T3ujtdo",
+          "mode": "list",
+          "cachedResultName": "Categories",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15Jp8CeN-MLBfi7KxHHM_d0w0TJbaf2rKNQw4T3ujtdo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15Jp8CeN-MLBfi7KxHHM_d0w0TJbaf2rKNQw4T3ujtdo/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "STATUS",
+              "lookupValue": "Pending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2144,
+        0
+      ],
+      "id": "173a2bd7-5ae2-4d4e-825e-85bd0be8bcde",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "V3ncwwvERBeU7iO9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2720,
+        0
+      ],
+      "id": "1c10e8f6-b0c2-4005-9bbb-efc9cc94cd85",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "15Jp8CeN-MLBfi7KxHHM_d0w0TJbaf2rKNQw4T3ujtdo",
+          "mode": "list",
+          "cachedResultName": "Categories",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15Jp8CeN-MLBfi7KxHHM_d0w0TJbaf2rKNQw4T3ujtdo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15Jp8CeN-MLBfi7KxHHM_d0w0TJbaf2rKNQw4T3ujtdo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "LABELS": "={{ $('Get row(s) in sheet').item.json.LABELS }}",
+            "STATUS": "Done"
+          },
+          "matchingColumns": [
+            "LABELS"
+          ],
+          "schema": [
+            {
+              "id": "LABELS",
+              "displayName": "LABELS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2528,
+        0
+      ],
+      "id": "a833478d-7aa9-4c52-8f81-ac6549f9365c",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "V3ncwwvERBeU7iO9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# How to Setup\nCopy the given Google Sheets document and add it in the google sheets node(you can customize it and add your own labels)\nDocument:\n[Gmail Labels](https://docs.google.com/spreadsheets/d/15Jp8CeN-MLBfi7KxHHM_d0w0TJbaf2rKNQw4T3ujtdo/copy)\n",
+        "height": 208,
+        "width": 272
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1584,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "60be61fd-a02e-4ed2-9faa-1afbb1452015",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Create a label": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Create a label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0a6fd5e4-6d77-48e2-b6ab-15509fd55321",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca315c1116a954e4795e337bf0da40d6ec32d0d6c6bce8420cce4be06aed6c36"
+  },
+  "id": "GDTsPponzxRgX9lg",
+  "tags": []
+}
